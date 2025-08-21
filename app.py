@@ -79,7 +79,25 @@ if uploaded_file is not None:
     st.write("✅ Arquivo carregado com sucesso!")
     st.dataframe(df)
 
-    dot = criar_organograma(df, largura_max=30)
+    # --- Filtros ---
+    st.sidebar.header("🔎 Filtros")
+    
+    # Filtro por setor
+    setores = ["Todos"] + sorted(df["Setor"].dropna().unique().tolist())
+    setor_escolhido = st.sidebar.selectbox("Filtrar por Setor", setores)
+
+    # Filtro por gestor
+    gestores = ["Todos"] + sorted(df["Gestor"].dropna().unique().tolist())
+    gestor_escolhido = st.sidebar.selectbox("Filtrar por Gestor", gestores)
+
+    # Aplica filtros
+    df_filtrado = df.copy()
+    if setor_escolhido != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Setor"] == setor_escolhido]
+    if gestor_escolhido != "Todos":
+        df_filtrado = df_filtrado[(df_filtrado["Gestor"] == gestor_escolhido) | (df_filtrado["Nome"] == gestor_escolhido)]
+
+    dot = criar_organograma(df_filtrado, largura_max=30)
     st.graphviz_chart(dot)
 
     # 🔽 Botões de download
