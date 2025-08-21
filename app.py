@@ -64,10 +64,8 @@ def criar_organograma(df, largura_max=20):
     return dot
 
 def gerar_download(dot, formato="svg"):
-    """Gera arquivo temporário e retorna como link base64"""
     filename = f"organograma.{formato}"
     dot.render(filename, format=formato, cleanup=True)
-
     with open(filename, "rb") as f:
         data = f.read()
     b64 = base64.b64encode(data).decode()
@@ -90,17 +88,27 @@ if uploaded_file is not None:
     gestores = ["Todos"] + sorted(df["Gestor"].dropna().unique().tolist())
     gestor_escolhido = st.sidebar.selectbox("Filtrar por Gestor", gestores)
 
-    # Aplica filtros
+    # Filtro por colaborador (busca)
+    colaborador_busca = st.sidebar.text_input("🔍 Buscar colaborador (nome ou parte)")
+
+    # --- Aplicação dos filtros ---
     df_filtrado = df.copy()
     if setor_escolhido != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Setor"] == setor_escolhido]
     if gestor_escolhido != "Todos":
         df_filtrado = df_filtrado[(df_filtrado["Gestor"] == gestor_escolhido) | (df_filtrado["Nome"] == gestor_escolhido)]
+    if colaborador_busca.strip() != "":
+        busca = colaborador_busca.lower()
+        df_filtrado = df[df["Nome"].str.lower().str.contains(busca, na=False)]
 
-    dot = criar_organograma(df_filtrado, largura_max=30)
-    st.graphviz_chart(dot)
+    # --- Geração do organograma filtrado ---
+    if not df_filtrado.empty:
+        dot = criar_organograma(df_filtrado, largura_max=30)
+        st.graphviz_chart(dot)
 
-    # 🔽 Botões de download
-    st.markdown("### 📥 Exportar Organograma")
-    st.markdown(gerar_download(dot, "png"), unsafe_allow_html=True)
-    st.markdown(gerar_download(dot, "svg"), unsafe_allow_html=True)
+        # 🔽 Botões de download
+        st.markdown("### 📥 Exportar Organograma")
+        st.markdown(gerar_download(dot, "png"), unsafe_allow_html=True)
+        st.markdown(gerar_download(dot, "svg"), unsafe_allow_html=True)
+    else:
+        st.warning("⚠️ Nenhum resultado encontrado para os filtros aplicados.")
