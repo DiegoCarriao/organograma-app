@@ -4,6 +4,8 @@ from graphviz import Digraph
 import textwrap
 from collections import defaultdict
 import re
+import base64
+import os
 
 st.set_page_config(page_title="Organograma Dinâmico", layout="wide")
 
@@ -13,7 +15,6 @@ st.write("Carregue um arquivo Excel com as colunas: **Nome, Cargo, Gestor, Setor
 uploaded_file = st.file_uploader("Selecione o arquivo Excel", type=["xlsx"])
 
 def criar_organograma(df, largura_max=20):
-    # Criar grafo
     dot = Digraph(comment="Organograma", format="svg")
     dot.attr(rankdir="TB", size="9", nodesep="0.3", ranksep="0.4")
     dot.attr("node", shape="box", style="rounded,filled", color="lightblue",
@@ -62,6 +63,17 @@ def criar_organograma(df, largura_max=20):
 
     return dot
 
+def gerar_download(dot, formato="svg"):
+    """Gera arquivo temporário e retorna como link base64"""
+    filename = f"organograma.{formato}"
+    dot.render(filename, format=formato, cleanup=True)
+
+    with open(filename, "rb") as f:
+        data = f.read()
+    b64 = base64.b64encode(data).decode()
+    href = f'<a href="data:file/{formato};base64,{b64}" download="{filename}">⬇️ Baixar {formato.upper()}</a>'
+    return href
+
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file, header=0)
     st.write("✅ Arquivo carregado com sucesso!")
@@ -69,3 +81,8 @@ if uploaded_file is not None:
 
     dot = criar_organograma(df, largura_max=30)
     st.graphviz_chart(dot)
+
+    # 🔽 Botões de download
+    st.markdown("### 📥 Exportar Organograma")
+    st.markdown(gerar_download(dot, "png"), unsafe_allow_html=True)
+    st.markdown(gerar_download(dot, "svg"), unsafe_allow_html=True)
